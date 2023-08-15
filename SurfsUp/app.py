@@ -14,7 +14,7 @@ from flask import Flask, jsonify
 #################################################
 # Database Setup
 #################################################
-engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///../Resources/hawaii.sqlite")
 
 # reflect an existing database into a new model
 Base = automap_base()
@@ -51,29 +51,27 @@ def welcome():
 ###precipitation route###
 ##returns json with the date as the key and the value as the precipitation###
 ###only returns the jsonified precipitation data for the last year in the database###
+
 @app.route("/api/v1.0/precipitation")
 def precipitation():
     # Create our session (link) from Python to the DB
     session = Session(engine)
-    # Date one year ago
-    recent_date = session.query(func.max(Measurement.date)).first()[0]
-
-    # Query for the date and precipitation for the last year
-    year = dt.datetime.strptime(recent_date,"%Y-%m-%d") - dt.timedelta(days=365)
-    year_str = year.strftime("%Y-%m-%d")
-    year_data = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= year_str).all()
+    
+    #year ago
+    previous_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
+    
+    # Query for the date and precipitation for a year
+    precipitation = session.query(Measurement.date, Measurement.prcp).\
+        filter(Measurement.date >= prev_year).all()
+        
     session.close()
-
+    
     # Dictionary with date as the key and the value as the precipitation
-    prcp_dict = []
-    for date, prcp in year_data:
-        date_dict = {}
-        date_dict["Date"] = date
-        date_dict["Precipitation"] = prcp_dict
-        prcp_dict.append(date_dict)
+    precip = {date: prcp for date, prcp in precipitation}
     
     # Return results
-    return jsonify(prcp_dict)
+    return jsonify(precip)
+    
 
 ###station route###
 ###returns jsonified data of all of the stations in the database
@@ -111,7 +109,7 @@ def tobs():
 ###start route###
 ###accepts the start date as a parameters from the URL###
 ###returns the min, max, and average temperatures calculated from the given start date to the end of the dataset###
-@app.route("/api/v1.0/start")
+@app.route("/api/v1.0/<sdate>")
 def start(sdate):
     # Create our session (link) from Python to the DB
     session = Session(engine)
